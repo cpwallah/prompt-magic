@@ -1,5 +1,5 @@
 {
-  "name": "my-turborepo",
+  "name": "prompt-magic",
   "private": true,
   "scripts": {
     "build": "turbo run build",
