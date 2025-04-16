@@ -1,0 +1,13 @@
+{
+  "extends": "@repo/typescript-config/base.json",
+  "compilerOptions": {
+    "rootDir": "./src",
+    "outDir": "./dist",
+    "jsx": "react-native",
+    "noEmit": false, // Override to allow emission
+    "lib": [
+      "ESNext"
+    ], // Remove DOM if not needed
+    "incremental": true // Optional: improve compilation speed
+  }
+}
