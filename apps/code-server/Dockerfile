@@ -10,5 +10,6 @@ RUN apt-get update && \
     rm -rf /var/lib/apt/lists/*
 
 USER coder
-EXPOSE 8081
-CMD ["code-server", "--auth", "none", "--bind-addr", "0.0.0.0:8081", "/tmp/bolty-worker"]
+EXPOSE 8080
+CMD ["code-server", "--auth", "none", "--bind-addr", "0.0.0.0:8080", "/tmp/bolty-worker"]
+

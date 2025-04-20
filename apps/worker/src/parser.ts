@@ -77,107 +77,171 @@
 //     } catch (e) {}
 //   }
 // }
+// export class ArtifactProcessor {
+//   public currentArtifact: string;
+//   private onFileContent: (filePath: string, fileContent: string) => void;
+//   private onShellCommand: (shellCommand: string) => void;
+
+//   constructor(
+//     currentArtifact: string,
+//     onFileContent: (filePath: string, fileContent: string) => void,
+//     onShellCommand: (shellCommand: string) => void
+//   ) {
+//     this.currentArtifact = currentArtifact;
+//     this.onFileContent = onFileContent;
+//     this.onShellCommand = onShellCommand;
+//   }
+
+//   append(artifact: string) {
+//     this.currentArtifact += artifact;
+//   }
+
+//   parse() {
+//     if (!this.currentArtifact) {
+//       console.error("Artifact content is empty or undefined.");
+//       return;
+//     }
+
+//     const lines = this.currentArtifact.split("\n");
+//     const latestActionStart = lines.findIndex((line) =>
+//       line.includes('<boltAction type="')
+//     );
+//     const latestActionEnd = lines.findIndex(
+//       (line, index) =>
+//         line.includes("</boltAction>") && index > latestActionStart
+//     );
+
+//     if (
+//       latestActionStart === -1 ||
+//       latestActionEnd === -1 ||
+//       latestActionStart >= latestActionEnd
+//     ) {
+//       console.error(
+//         "Invalid action block: Start or End not found or malformed."
+//       );
+//       return;
+//     }
+
+//     const match = this.currentArtifact.match(/<boltAction\s+type="([^"]+)"/);
+//     const latestActionType = match?.[1];
+
+//     if (!latestActionType) {
+//       console.error("Action type not found.");
+//       return;
+//     }
+
+//     const latestActionContent = lines
+//       .slice(latestActionStart, latestActionEnd + 1)
+//       .join("\n");
+
+//     try {
+//       if (latestActionType === "shell") {
+//         let shellCommand = latestActionContent.split("\n").slice(1).join("\n");
+//         if (typeof shellCommand !== "string" || !shellCommand.trim()) {
+//           console.error("Shell command is empty, undefined, or invalid.");
+//           return;
+//         }
+//         shellCommand = shellCommand.replace(/<\/boltAction>\s*$/, "").trim();
+//         this.currentArtifact = this.currentArtifact
+//           .split(latestActionContent)
+//           .slice(1)
+//           .join("\n");
+//         if (shellCommand) {
+//           this.onShellCommand?.(shellCommand);
+//         } else {
+//           console.error("Shell command is empty after processing.");
+//         }
+//       } else if (latestActionType === "file") {
+//         const matchFilePath = this.currentArtifact.match(/filePath="([^"]+)"/);
+//         const filePath = matchFilePath?.[1];
+//         if (!filePath) {
+//           console.error("File path not found.");
+//           return;
+//         }
+//         let fileContent = latestActionContent.split("\n").slice(1).join("\n");
+//         if (typeof fileContent !== "string" || !fileContent.trim()) {
+//           console.error("File content is empty, undefined, or invalid.");
+//           return;
+//         }
+//         fileContent = fileContent.replace(/<\/boltAction>\s*$/, "").trim();
+//         this.currentArtifact = this.currentArtifact
+//           .split(latestActionContent)
+//           .slice(1)
+//           .join("\n");
+//         if (filePath && fileContent) {
+//           this.onFileContent?.(filePath, fileContent);
+//         } else {
+//           console.error("File path or content is empty after processing.");
+//         }
+//       } else {
+//         console.error(`Unknown action type: ${latestActionType}`);
+//       }
+//     } catch (error) {
+//       console.error("Error occurred during parsing:", error);
+//     }
+//   }
+// }
 export class ArtifactProcessor {
-  public currentArtifact: string;
-  private onFileContent: (filePath: string, fileContent: string) => void;
-  private onShellCommand: (shellCommand: string) => void;
+  private artifact: string;
+  private onFileUpdate: (
+    filePath: string,
+    fileContent: string
+  ) => Promise<void>;
+  private onShellCommand: (shellCommand: string) => Promise<void>;
+  private buffer: string;
 
   constructor(
-    currentArtifact: string,
-    onFileContent: (filePath: string, fileContent: string) => void,
-    onShellCommand: (shellCommand: string) => void
+    artifact: string,
+    onFileUpdate: (filePath: string, fileContent: string) => Promise<void>,
+    onShellCommand: (shellCommand: string) => Promise<void>
   ) {
-    this.currentArtifact = currentArtifact;
-    this.onFileContent = onFileContent;
+    this.artifact = artifact;
+    this.onFileUpdate = onFileUpdate;
     this.onShellCommand = onShellCommand;
+    this.buffer = "";
   }
 
-  append(artifact: string) {
-    this.currentArtifact += artifact;
+  append(text: string) {
+    this.buffer += text;
+    this.artifact += text;
   }
 
-  parse() {
-    if (!this.currentArtifact) {
-      console.error("Artifact content is empty or undefined.");
-      return;
-    }
+  async parse() {
+    const actionBlockRegex = /<boltAction[^>]*>[\s\S]*?<\/boltAction>/g;
+    let match;
 
-    const lines = this.currentArtifact.split("\n");
-    const latestActionStart = lines.findIndex((line) =>
-      line.includes('<boltAction type="')
-    );
-    const latestActionEnd = lines.findIndex(
-      (line, index) =>
-        line.includes("</boltAction>") && index > latestActionStart
-    );
+    while ((match = actionBlockRegex.exec(this.buffer)) !== null) {
+      const block = match[0];
+      try {
+        const typeMatch = block.match(/type="([^"]*)"/);
+        const filePathMatch = block.match(/filePath="([^"]*)"/);
+        const content = block
+          .replace(/<boltAction[^>]*>/, "")
+          .replace(/<\/boltAction>/, "")
+          .trim();
 
-    if (
-      latestActionStart === -1 ||
-      latestActionEnd === -1 ||
-      latestActionStart >= latestActionEnd
-    ) {
-      console.error(
-        "Invalid action block: Start or End not found or malformed."
-      );
-      return;
-    }
+        const latestActionType = typeMatch ? typeMatch[1] : "";
+        const filePath = filePathMatch ? filePathMatch[1] : "";
 
-    const match = this.currentArtifact.match(/<boltAction\s+type="([^"]+)"/);
-    const latestActionType = match?.[1];
-
-    if (!latestActionType) {
-      console.error("Action type not found.");
-      return;
-    }
-
-    const latestActionContent = lines
-      .slice(latestActionStart, latestActionEnd + 1)
-      .join("\n");
-
-    try {
-      if (latestActionType === "shell") {
-        let shellCommand = latestActionContent.split("\n").slice(1).join("\n");
-        if (typeof shellCommand !== "string" || !shellCommand.trim()) {
-          console.error("Shell command is empty, undefined, or invalid.");
-          return;
-        }
-        shellCommand = shellCommand.replace(/<\/boltAction>\s*$/, "").trim();
-        this.currentArtifact = this.currentArtifact
-          .split(latestActionContent)
-          .slice(1)
-          .join("\n");
-        if (shellCommand) {
-          this.onShellCommand?.(shellCommand);
+        if (latestActionType === "file" && filePath && content) {
+          await this.onFileUpdate(filePath, content);
+        } else if (latestActionType === "shell" && content) {
+          await this.onShellCommand(content);
         } else {
-          console.error("Shell command is empty after processing.");
+          console.error(
+            "Invalid action block: Missing type, filePath, or content"
+          );
         }
-      } else if (latestActionType === "file") {
-        const matchFilePath = this.currentArtifact.match(/filePath="([^"]+)"/);
-        const filePath = matchFilePath?.[1];
-        if (!filePath) {
-          console.error("File path not found.");
-          return;
-        }
-        let fileContent = latestActionContent.split("\n").slice(1).join("\n");
-        if (typeof fileContent !== "string" || !fileContent.trim()) {
-          console.error("File content is empty, undefined, or invalid.");
-          return;
-        }
-        fileContent = fileContent.replace(/<\/boltAction>\s*$/, "").trim();
-        this.currentArtifact = this.currentArtifact
-          .split(latestActionContent)
-          .slice(1)
-          .join("\n");
-        if (filePath && fileContent) {
-          this.onFileContent?.(filePath, fileContent);
-        } else {
-          console.error("File path or content is empty after processing.");
-        }
-      } else {
-        console.error(`Unknown action type: ${latestActionType}`);
+
+        // Remove processed block from buffer
+        this.buffer = this.buffer.slice(match.index + block.length);
+      } catch (error) {
+        console.error("Error parsing action block:", error);
       }
-    } catch (error) {
-      console.error("Error occurred during parsing:", error);
     }
+  }
+
+  getArtifact() {
+    return this.artifact;
   }
 }
