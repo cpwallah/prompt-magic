@@ -9,7 +9,7 @@ import {
   } from '@clerk/nextjs'
 export function Appbar(){
     return(
-        <div className="flex justify-between">
+        <div className="flex justify-between px-2 py-1">
             <div>Bolty</div>
             <div>
             <SignedOut>

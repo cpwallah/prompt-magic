@@ -26,6 +26,7 @@ model Project {
   createdAt   DateTime @default(now())
   updated     DateTime @updatedAt
   prompt      Prompt[]
+  actions     Action[]
   userId      String
 }
 
@@ -37,6 +38,15 @@ model Prompt {
   updated   DateTime   @updatedAt
   project   Project    @relation(fields: [projectId], references: [id])
   projectId String
+}
+
+model Action {
+  id        String   @id @default(uuid())
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  project   Project  @relation(fields: [projectId], references: [id])
+  projectId String
+  content   String
 }
 
 enum PromptType {

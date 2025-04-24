@@ -201,6 +201,76 @@
 //   await artifactProcessor.parse();
 //   expect(artifactProcessor.getArtifact()).toContain("<boltAction>");
 // });
+
+// imp
+// import { expect, test } from "vitest";
+// import { ArtifactProcessor } from "./parser";
+
+// test("Action with shell and file", async () => {
+//   const boltAction = `<boltArtifact>
+//           <boltAction type="shell">
+//               pnpm run start
+//           </boltAction>
+//           <boltAction type="file" filePath="src/index.js">
+//               console.log("Hello, world!");
+//           </boltAction>
+//       </boltArtifact>`;
+//   const artifactProcessor = new ArtifactProcessor(
+//     "",
+//     async (filePath, fileContent) => {
+//       expect(filePath).toBe("src/index.js");
+//       expect(fileContent).toContain('console.log("Hello, world!");');
+//     },
+//     async (shellCommand) => {
+//       console.log(shellCommand);
+//       expect(shellCommand).toContain("pnpm run start");
+//     }
+//   );
+
+//   artifactProcessor.append(boltAction);
+//   await artifactProcessor.parse();
+//   await artifactProcessor.parse();
+//   expect(artifactProcessor.getArtifact()).toContain("<boltAction>");
+// });
+
+// test("Action with appends", async () => {
+//   const boltAction = `<boltArtifact>
+//           <boltAction type="shell">
+//               pnpm run start
+//           </boltAction>
+//           <boltAction type="file" filePath="src/index.js">
+//               console.log("Hello, world!");
+//           </boltAction>
+//       </boltArtifact>`;
+//   const artifactProcessor = new ArtifactProcessor(
+//     "",
+//     async (filePath, fileContent) => {
+//       expect(filePath).toBe("src/index.js");
+//       expect(fileContent).toContain('console.log("Hello, world!");');
+//     },
+//     async (shellCommand) => {
+//       console.log(shellCommand);
+//       expect(shellCommand).toContain("pnpm run start");
+//     }
+//   );
+
+//   artifactProcessor.append(boltAction);
+//   await artifactProcessor.parse();
+//   artifactProcessor.append(`
+//         <boltAction type="shell">
+//             pnpm run start
+//         </boltAction>
+//     `);
+//   await artifactProcessor.parse();
+//   artifactProcessor.append(`
+//         <boltAction type="file" filePath="src/index.js">
+//             console.log("Hello, world!");
+//         </boltAction>
+//     `);
+//   await artifactProcessor.parse();
+//   expect(artifactProcessor.getArtifact()).toContain("<boltAction>");
+// });
+
 import { expect, test } from "vitest";
 import { ArtifactProcessor } from "./parser";
 
@@ -213,15 +283,19 @@ test("Action with shell and file", async () => {
               console.log("Hello, world!");
           </boltAction>
       </boltArtifact>`;
+  const projectId = "test-project"; // Provide a test projectId
   const artifactProcessor = new ArtifactProcessor(
     "",
-    async (filePath, fileContent) => {
+    projectId,
+    async (filePath: string, fileContent: string, projectId: string) => {
       expect(filePath).toBe("src/index.js");
       expect(fileContent).toContain('console.log("Hello, world!");');
+      expect(projectId).toBe("test-project"); // Optional: Verify projectId
     },
-    async (shellCommand) => {
-      console.log(shellCommand);
+    async (shellCommand: string, projectId: string) => {
+      console.log(`Shell command for project ${projectId}: ${shellCommand}`);
       expect(shellCommand).toContain("pnpm run start");
+      expect(projectId).toBe("test-project"); // Optional: Verify projectId
     }
   );
 
@@ -240,15 +314,19 @@ test("Action with appends", async () => {
               console.log("Hello, world!");
           </boltAction>
       </boltArtifact>`;
+  const projectId = "test-project"; // Provide a test projectId
   const artifactProcessor = new ArtifactProcessor(
     "",
-    async (filePath, fileContent) => {
+    projectId,
+    async (filePath: string, fileContent: string, projectId: string) => {
       expect(filePath).toBe("src/index.js");
       expect(fileContent).toContain('console.log("Hello, world!");');
+      expect(projectId).toBe("test-project"); // Optional: Verify projectId
     },
-    async (shellCommand) => {
-      console.log(shellCommand);
+    async (shellCommand: string, projectId: string) => {
+      console.log(`Shell command for project ${projectId}: ${shellCommand}`);
       expect(shellCommand).toContain("pnpm run start");
+      expect(projectId).toBe("test-project"); // Optional: Verify projectId
     }
   );
 

@@ -181,21 +181,122 @@
 //     }
 //   }
 // }
+
+//
+
+// noicee
+// export class ArtifactProcessor {
+//   private artifact: string;
+//   private projectId: string;
+//   private onFileUpdate: (
+//     filePath: string,
+//     fileContent: string,
+//     projectId: string
+//   ) => Promise<void>;
+//   private onShellCommand: (
+//     shellCommand: string,
+//     projectId: string
+//   ) => Promise<void>;
+//   private buffer: string;
+
+//   constructor(
+//     artifact: string,
+//     projectId: string,
+//     onFileUpdate: (
+//       filePath: string,
+//       fileContent: string,
+//       projectId: string
+//     ) => Promise<void>,
+//     onShellCommand: (shellCommand: string, projectId: string) => Promise<void>
+//   ) {
+//     this.artifact = artifact;
+//     this.projectId = projectId;
+//     this.onFileUpdate = onFileUpdate;
+//     this.onShellCommand = onShellCommand;
+//     this.buffer = "";
+//   }
+
+//   append(text: string) {
+//     this.buffer += text;
+//     this.artifact += text;
+//   }
+
+//   async parse() {
+//     const actionBlockRegex = /<boltAction[^>]*>[\s\S]*?<\/boltAction>/g;
+//     let match;
+
+//     while ((match = actionBlockRegex.exec(this.buffer)) !== null) {
+//       const block = match[0];
+//       try {
+//         const typeMatch = block.match(/type="([^"]*)"/);
+//         const pathMatch = block.match(/path="([^"]*)"/);
+//         const commandMatch = block.match(/command="([^"]*)"/);
+//         const content = block
+//           .replace(/<boltAction[^>]*>/, "")
+//           .replace(/<\/boltAction>/, "")
+//           .trim();
+
+//         const actionType = typeMatch ? typeMatch[1] : "";
+//         const filePath = pathMatch ? pathMatch[1] : "";
+//         const shellCommand = commandMatch ? commandMatch[1] : content;
+
+//         if (actionType === "file-update" && filePath && content) {
+//           console.log(
+//             `Processing file update: ${filePath} with content length ${content.length}`
+//           );
+//           await this.onFileUpdate(filePath, content, this.projectId);
+//         } else if (actionType === "shell" && (shellCommand || content)) {
+//           console.log(`Processing shell command: ${shellCommand || content}`);
+//           await this.onShellCommand(shellCommand || content, this.projectId);
+//         } else {
+//           console.error(
+//             "Invalid action block: Missing type, path, or content",
+//             { actionType, filePath, content, shellCommand }
+//           );
+//         }
+
+//         this.buffer = this.buffer.slice(match.index + block.length);
+//       } catch (error) {
+//         console.error("Error parsing action block:", error);
+//       }
+//     }
+//   }
+
+//   getArtifact() {
+//     return this.artifact;
+//   }
+
+//   getProjectId() {
+//     return this.projectId;
+//   }
+// }
+
 export class ArtifactProcessor {
   private artifact: string;
+  private projectId: string;
   private onFileUpdate: (
     filePath: string,
-    fileContent: string
+    fileContent: string,
+    projectId: string
   ) => Promise<void>;
-  private onShellCommand: (shellCommand: string) => Promise<void>;
+  private onShellCommand: (
+    shellCommand: string,
+    projectId: string
+  ) => Promise<void>;
   private buffer: string;
 
   constructor(
     artifact: string,
-    onFileUpdate: (filePath: string, fileContent: string) => Promise<void>,
-    onShellCommand: (shellCommand: string) => Promise<void>
+    projectId: string,
+    onFileUpdate: (
+      filePath: string,
+      fileContent: string,
+      projectId: string
+    ) => Promise<void>,
+    onShellCommand: (shellCommand: string, projectId: string) => Promise<void>
   ) {
     this.artifact = artifact;
+    this.projectId = projectId;
     this.onFileUpdate = onFileUpdate;
     this.onShellCommand = onShellCommand;
     this.buffer = "";
@@ -204,6 +305,9 @@ export class ArtifactProcessor {
   append(text: string) {
     this.buffer += text;
     this.artifact += text;
+    console.log(
+      `Appended to buffer: ${text.length} characters, content preview: ${text.substring(0, 50)}...`
+    );
   }
 
   async parse() {
@@ -214,26 +318,37 @@ export class ArtifactProcessor {
       const block = match[0];
       try {
         const typeMatch = block.match(/type="([^"]*)"/);
-        const filePathMatch = block.match(/filePath="([^"]*)"/);
+        const pathMatch = block.match(/path="([^"]*)"/);
+        const commandMatch = block.match(/command="([^"]*)"/);
         const content = block
           .replace(/<boltAction[^>]*>/, "")
           .replace(/<\/boltAction>/, "")
           .trim();
 
-        const latestActionType = typeMatch ? typeMatch[1] : "";
-        const filePath = filePathMatch ? filePathMatch[1] : "";
+        const actionType = typeMatch ? typeMatch[1] : "";
+        const filePath = pathMatch ? pathMatch[1] : "";
+        const shellCommand = commandMatch ? commandMatch[1] : content;
 
-        if (latestActionType === "file" && filePath && content) {
-          await this.onFileUpdate(filePath, content);
-        } else if (latestActionType === "shell" && content) {
-          await this.onShellCommand(content);
+        if (actionType === "file-update" && filePath && content) {
+          console.log(
+            `Processing file update: ${filePath} with content:\n${content.substring(0, 200)}...`
+          );
+          if (filePath === "App.tsx") {
+            console.log(
+              `Updating App.tsx with content length: ${content.length}`
+            );
+          }
+          await this.onFileUpdate(filePath, content, this.projectId);
+        } else if (actionType === "shell" && (shellCommand || content)) {
+          console.log(`Processing shell command: ${shellCommand || content}`);
+          await this.onShellCommand(shellCommand || content, this.projectId);
         } else {
           console.error(
-            "Invalid action block: Missing type, filePath, or content"
+            "Invalid action block: Missing type, path, or content",
+            { actionType, filePath, content, shellCommand }
           );
         }
 
-        // Remove processed block from buffer
         this.buffer = this.buffer.slice(match.index + block.length);
       } catch (error) {
         console.error("Error parsing action block:", error);
@@ -243,5 +358,9 @@ export class ArtifactProcessor {
 
   getArtifact() {
     return this.artifact;
+  }
+
+  getProjectId() {
+    return this.projectId;
   }
 }

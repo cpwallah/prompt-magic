@@ -97,6 +97,23 @@ app.get(
   }
 );
 
+app.get("/prompts/:projectId", authMiddleware, async (req, res) => {
+  // const userId = req.userId!;
+  const projectId = req.params.projectId;
+  const prompts = await prismaa.prompt.findMany({
+    where: { projectId },
+  });
+  res.json({ prompts });
+});
+
+app.get("/actions/:projectId", authMiddleware, async (req, res) => {
+  // const userId = req.userId!;
+  const projectId = req.params.projectId;
+  const actions = await prismaa.action.findMany({
+    where: { projectId },
+  });
+  res.json({ actions });
+});
 // Start the server
 app.listen(3010, () => {
   console.log("Server is running on port 3010");

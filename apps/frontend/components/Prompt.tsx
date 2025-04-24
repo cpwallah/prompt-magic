@@ -3,14 +3,16 @@
 import axios from "axios";
 import { Button } from "./ui/button";
 import { Textarea } from "./ui/textarea";
-import { Send } from "lucide-react";
+import {  Send } from "lucide-react";
 import { useState } from "react";
 import { useAuth } from "@clerk/nextjs";
 import { BACKEND_URL } from "@/config"; // Make sure BACKEND_URL = http://localhost:3010 or from .env
+import {  useRouter } from "next/navigation";
 
 export function Prompt() {
   const [prompt, setPrompt] = useState("");
   const { getToken } = useAuth();
+  const router=useRouter();
 
   const handleSubmit = async () => {
     try {
@@ -32,6 +34,11 @@ export function Prompt() {
           },
         }
       );
+      // await axios.post(`http://localhost:9091/prompt`,{
+      //   projectId:response.data.projectId,
+      //   prompt:prompt,
+      // })
+      router.push(`project/${response.data.projectId}`);
 
       console.log("Project created:", response.data);
     } catch (error: any) {
@@ -55,3 +62,4 @@ export function Prompt() {
     </div>
   );
 }
+
