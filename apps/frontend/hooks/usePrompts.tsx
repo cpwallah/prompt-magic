@@ -80,7 +80,7 @@ export function usePrompts(projectId: string): UsePromptsResult {
 
     if (projectId) {
       getPrompts();
-      const interval = setInterval(getPrompts, 5000);
+      const interval = setInterval(getPrompts, 20000);
       return () => clearInterval(interval);
     }
   }, [projectId]);

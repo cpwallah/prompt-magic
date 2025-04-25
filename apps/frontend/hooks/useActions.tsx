@@ -80,7 +80,7 @@ export function useActions(projectId: string): UseActionsResult {
 
     if (projectId) {
       getActions();
-      const interval = setInterval(getActions, 5000);
+      const interval = setInterval(getActions, 20000);
       return () => clearInterval(interval);
     }
   }, [projectId]);
